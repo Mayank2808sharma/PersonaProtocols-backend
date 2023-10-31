@@ -14,7 +14,9 @@ app.use(
   })
 );
 app.use(bodyParser.json());
-app.use(fileUpload());
+app.use(fileUpload({
+  createParentPath: true
+}));
 
 // creating session to remember and differenciate b/w diff users so that each user context remains to them
 const sessions = {};
@@ -86,19 +88,21 @@ app.post("/chat", async (req, res) => {
 
 app.post("/upload", (req, res) => {
   const { sessionId } = req.body;
+  if (!sessionId) {
+    return res.status(400).send("Session ID is required");
+  }
   const session = sessions[sessionId];
-
   if (!session) {
     return res.status(404).send("Session not found");
   }
-
-  if (!req.files || Object.keys(req.files).length === 0) {
-    return res.status(400).send("No files were uploaded.");
+  if (!req.files || !req.files.file) {
+    return res.status(400).send("No File uploaded.");
   }
-
   const userFile = req.files.file;
+  if (userFile.mimetype !== 'text/plain') {
+    return res.status(400).send("Invalid file type");
+  }
   const fileContent = userFile.data.toString("utf8");
-
   session.uploadedFileContent = fileContent;
   res.send("File uploaded!");
 });
